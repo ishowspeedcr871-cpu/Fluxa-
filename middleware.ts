@@ -1,5 +1,6 @@
 import type { NextRequest } from "next/server";
 import { NextResponse } from "next/server";
+const MASTER_DEVELOPER_COOKIE = "fluxa_master_developer";
 import { SESSION_COOKIE_NAME } from "@/services/auth/constants";
 
 const protectedRoutes = [
@@ -28,8 +29,8 @@ export function middleware(request: NextRequest) {
   }
 
   if (pathname.startsWith("/developer")) {
-    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
-    return sessionCookie ? NextResponse.next() : new NextResponse(null, { status: 404 });
+    const masterCookie = request.cookies.get(MASTER_DEVELOPER_COOKIE)?.value;
+    return masterCookie ? NextResponse.next() : new NextResponse(null, { status: 404 });
   }
 
   if (!isProtected(pathname)) return NextResponse.next();
