@@ -5,9 +5,6 @@ import { verifyPassword } from "@/services/auth/password";
 
 const MASTER_DEVELOPER_COOKIE = "fluxa_master_developer";
 const MASTER_DEVELOPER_TTL_HOURS = 8;
-const DEVELOPMENT_MASTER_ID = "Harsh";
-const DEVELOPMENT_MASTER_PASSWORD_HASH =
-  "scrypt:fluxa-master-dev-fallback:6321dcf50097ee021ad8735f441710fafc38a3af4b09ca4bf32289831f52c828f43ba2f29be111bb59260248999489a3f9ec9469f1ac5c51b0127311371bd8cb";
 
 type MasterDeveloperIdentity = {
   id: string;
@@ -37,7 +34,7 @@ function configuredMasterId() {
   if (envId && envId.trim() !== "" && !envId.includes("replace-with-actual")) {
     return envId.trim();
   }
-  return DEVELOPMENT_MASTER_ID;
+  return null;
 }
 
 function configuredMasterPasswordHash() {
@@ -45,7 +42,7 @@ function configuredMasterPasswordHash() {
   if (envHash && envHash.trim() !== "" && !envHash.includes("replace-with-generated")) {
     return envHash.trim();
   }
-  return DEVELOPMENT_MASTER_PASSWORD_HASH;
+  return null;
 }
 
 function encodeSession(identity: MasterDeveloperIdentity) {
@@ -80,13 +77,6 @@ export async function authenticateMasterDeveloper(input: { masterId: string; pas
     ? verifyPassword(input.password, expectedPasswordHash)
     : false;
 
-  // Direct robust fallback for "Harsh" / "7304" to ensure operator login is always successful
-  if (!validId || !validPassword) {
-    if (normalizedInputId.toLowerCase() === "harsh" && input.password === "7304") {
-      validId = true;
-      validPassword = true;
-    }
-  }
 
   if (!validId || !validPassword) {
     await createAuditLog({
