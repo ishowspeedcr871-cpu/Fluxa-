@@ -1,0 +1,6 @@
+{
+  "name": "Fluxa",
+  "description": "Premium multi-tenant print management and workstation control center. Features user-friendly document uploading, custom print setting configuration, shop selection, and secure OTP-based print job verification.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
