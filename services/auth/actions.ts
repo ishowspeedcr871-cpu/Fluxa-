@@ -6,7 +6,6 @@ import { prisma } from "@/database/client";
 import { createAuditLog } from "@/services/audit/log";
 import { verifyPassword } from "@/services/auth/password";
 import { createUserSession, signOutCurrentSession } from "@/services/auth/session";
-import { authenticateMasterDeveloper, revokeMasterDeveloperSession } from "@/services/developer/master-auth";
 
 const loginSchema = z.object({
   email: z
@@ -24,7 +23,6 @@ async function authenticate(formData: FormData, redirectTo: string, errorPath: s
 
   if (!parsed.success) redirect(`${errorPath}?error=invalid_input`);
 
-  // AI Studio Mock/Real Authentication
   let user;
   try {
     user = await prisma.user.findUnique({
@@ -38,18 +36,17 @@ async function authenticate(formData: FormData, redirectTo: string, errorPath: s
       },
     });
   } catch (error) {
-    console.warn("Prisma error, falling back to mock user", error);
-  }
-  
-  if (user && user.passwordHash && user.passwordHash !== "mock") {
-    const isValid = verifyPassword(parsed.data.password, user.passwordHash);
-    if (!isValid) {
-      redirect(`${errorPath}?error=invalid_credentials`);
-    }
+    console.error("Authentication lookup failed", error);
+    redirect(`${errorPath}?error=service_unavailable`);
   }
 
-  if (!user) {
-    user = { id: 'mock-user-id', email: parsed.data.email, status: 'ACTIVE', passwordHash: 'mock' } as any;
+  if (!user?.passwordHash) {
+    redirect(`${errorPath}?error=invalid_credentials`);
+  }
+
+  const isValid = verifyPassword(parsed.data.password, user.passwordHash);
+  if (!isValid) {
+    redirect(`${errorPath}?error=invalid_credentials`);
   }
 
   // Check if the user is suspended or soft-deleted
@@ -60,10 +57,12 @@ async function authenticate(formData: FormData, redirectTo: string, errorPath: s
   // Check if the user's organization(s) are suspended or soft-deleted
   if (user && user.memberships && user.memberships.length > 0) {
     const activeMemberships = user.memberships.filter((m: any) => {
-      return m.organization && m.organization.status === "ACTIVE" && m.organization.deletedAt === null;
+      return (
+        m.organization && m.organization.status === "ACTIVE" && m.organization.deletedAt === null
+      );
     });
 
-    if (activeMemberships.length === 0 && user.id !== "mock-user-id") {
+    if (activeMemberships.length === 0) {
       redirect(`${errorPath}?error=org_suspended`);
     }
   }
@@ -73,13 +72,13 @@ async function authenticate(formData: FormData, redirectTo: string, errorPath: s
   const portalRole = isEmployeeLogin ? "ORGANIZATION" : "CUSTOMER";
 
   let targetRedirect = redirectTo;
-  
+
   if (isEmployeeLogin) {
     targetRedirect = "/employee";
   } else if (user && user.memberships && user.memberships.length > 0) {
     const isCustomer = user.memberships.some((m: any) => m.role.scope === "CUSTOMER");
     const isEmployee = user.memberships.some((m: any) => m.role.scope === "ORGANIZATION");
-    
+
     if (redirectTo === "/dashboard" || redirectTo === "/") {
       if (isCustomer) {
         targetRedirect = "/customer";
@@ -99,25 +98,7 @@ export async function loginAction(next: string, formData: FormData) {
   return authenticate(formData, safeNext, "/login");
 }
 
-export async function developerLoginAction(next: string, formData: FormData) {
-  const masterId = String(formData.get("masterId") ?? "");
-  const password = String(formData.get("password") ?? "");
-  const authenticated = await authenticateMasterDeveloper({ masterId, password });
-
-  if (!authenticated) {
-    const errorUrl = `/developer/login?error=invalid_credentials${next ? `&next=${encodeURIComponent(next)}` : ""}`;
-    redirect(errorUrl);
-  }
-  const safeNext = next?.startsWith("/") ? next : "/developer";
-  redirect(safeNext);
-}
-
 export async function logoutAction() {
   await signOutCurrentSession();
-  redirect("/login");
-}
-
-export async function developerLogoutAction() {
-  await revokeMasterDeveloperSession();
-  redirect("/developer/login");
+  redirect("/login?portal=customer");
 }

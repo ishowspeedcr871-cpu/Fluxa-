@@ -4,7 +4,7 @@ import { getPlatformOcrDashboard } from "@/services/ocr/ocr-service";
 
 export async function GET() {
   try {
-    await requireMasterDeveloper();
+    await requireMasterDeveloper({ api: true });
     return Response.json(await getPlatformOcrDashboard());
   } catch (error) {
     return handleOcrApiError(error);

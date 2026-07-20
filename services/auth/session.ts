@@ -44,8 +44,8 @@ export async function createUserSession(userId: string, portalRole?: "CUSTOMER" 
   const cookieStore = await cookies();
   cookieStore.set(SESSION_COOKIE_NAME, `${session.id}.${token}`, {
     httpOnly: true,
-    sameSite: "none",
-    secure: true,
+    sameSite: "lax",
+    secure: process.env.NODE_ENV === "production",
     expires: expiresAt,
     path: "/",
   });
@@ -53,8 +53,8 @@ export async function createUserSession(userId: string, portalRole?: "CUSTOMER" 
   if (portalRole) {
     cookieStore.set("fluxa_portal_role", portalRole, {
       httpOnly: true,
-      sameSite: "none",
-      secure: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
       expires: expiresAt,
       path: "/",
     });
@@ -78,7 +78,7 @@ export async function createUserSession(userId: string, portalRole?: "CUSTOMER" 
 export async function getCurrentSession() {
   const cookieStore = await cookies();
   const rawSession = cookieStore.get(SESSION_COOKIE_NAME)?.value;
-  
+
   if (!rawSession) return null;
 
   const [sessionId] = rawSession.split(".");
@@ -119,7 +119,11 @@ export async function getCurrentSession() {
 
         // Filter memberships that belong to active, non-deleted organizations
         const activeMemberships = dbSession.user.memberships.filter((m: any) => {
-          return m.organization && m.organization.status === "ACTIVE" && m.organization.deletedAt === null;
+          return (
+            m.organization &&
+            m.organization.status === "ACTIVE" &&
+            m.organization.deletedAt === null
+          );
         });
 
         // If the user has memberships but NONE of them belong to an active organization, invalidate the session
@@ -143,75 +147,7 @@ export async function getCurrentSession() {
     }
   }
 
-  // If a real DB session was not found, and the sessionId is not "mock-session-id",
-  // do not return the mock session fallback to maintain solid security boundaries.
-  if (sessionId !== "mock-session-id") {
-    return null;
-  }
-
-  // Structured fallback memberships based on active portal context
-  const mockCustomerMembership = {
-    id: "mock-customer-membership-id",
-    organizationId: "mock-org",
-    status: "ACTIVE",
-    organization: {
-      id: "mock-org",
-      name: "Mock Org",
-      slug: "mock-org",
-      status: "ACTIVE",
-      timezone: "UTC",
-      currency: "USD",
-    },
-    role: {
-      key: "customer-user",
-      name: "Customer",
-      scope: "CUSTOMER",
-      permissions: [],
-    },
-  };
-
-  const mockOrgMembership = {
-    id: "mock-membership-id",
-    organizationId: "mock-org",
-    status: "ACTIVE",
-    organization: {
-      id: "mock-org",
-      name: "Mock Org",
-      slug: "mock-org",
-      status: "ACTIVE",
-      timezone: "UTC",
-      currency: "USD",
-    },
-    role: {
-      key: "organization-owner",
-      name: "Admin",
-      scope: "ORGANIZATION",
-      permissions: [
-        {
-          permission: {
-            key: "admin",
-          },
-        },
-      ],
-    },
-  };
-
-  const memberships = portalRole === "CUSTOMER" ? [mockCustomerMembership] : [mockOrgMembership];
-
-  // Mocked AI Studio session (fallback)
-  return {
-    id: "mock-session-id",
-    userId: "mock-user-id",
-    status: "ACTIVE",
-    expiresAt: new Date(Date.now() + 86400000),
-    user: {
-      id: "mock-user-id",
-      email: "test@example.com",
-      name: "Mock User",
-      status: "ACTIVE",
-      memberships,
-    },
-  };
+  return null;
 }
 
 export async function signOutCurrentSession() {

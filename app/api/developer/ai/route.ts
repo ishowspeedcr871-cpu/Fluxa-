@@ -4,7 +4,7 @@ import { getPlatformAiDashboard } from "@/services/ai/ai-service";
 
 export async function GET() {
   try {
-    await requireMasterDeveloper();
+    await requireMasterDeveloper({ api: true });
     return Response.json(await getPlatformAiDashboard());
   } catch (error) {
     return handleApiError(error);

@@ -9,7 +9,6 @@ const protectedRoutes = [
   "/printers",
   "/analytics",
   "/reports",
-  "/developer",
   "/settings",
   "/profile",
   "/invitations",
@@ -17,31 +16,30 @@ const protectedRoutes = [
   "/employee",
 ];
 
+function isProtected(pathname: string) {
+  return protectedRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`));
+}
+
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
-  if (pathname.startsWith("/developer/login")) return NextResponse.next();
-
-  if (pathname.startsWith("/developer")) {
-    if (request.cookies.has("fluxa_master_developer")) {
-      return NextResponse.next();
-    }
-    const devLoginUrl = new URL("/developer/login", request.url);
-    devLoginUrl.searchParams.set("next", pathname);
-    return NextResponse.redirect(devLoginUrl);
+  if (pathname.startsWith("/developer/login")) {
+    return new NextResponse(null, { status: 404 });
   }
 
-  const isProtectedRoute = protectedRoutes.some(
-    (route) => pathname === route || pathname.startsWith(`${route}/`),
-  );
+  if (pathname.startsWith("/developer")) {
+    const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
+    return sessionCookie ? NextResponse.next() : new NextResponse(null, { status: 404 });
+  }
 
-  if (!isProtectedRoute) return NextResponse.next();
+  if (!isProtected(pathname)) return NextResponse.next();
 
   const sessionCookie = request.cookies.get(SESSION_COOKIE_NAME)?.value;
   if (sessionCookie) return NextResponse.next();
 
   const loginUrl = new URL("/login", request.url);
   loginUrl.searchParams.set("next", pathname);
+  loginUrl.searchParams.set("portal", "customer");
   return NextResponse.redirect(loginUrl);
 }
 
