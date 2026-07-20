@@ -42,7 +42,7 @@ const features = [
   {
     Icon: Layers3,
     title: "Operational command",
-    copy: "Customer, employee, organization and developer portals share one elegant system.",
+    copy: "Customer, employee and organization portals share one elegant system.",
   },
 ];
 
@@ -243,7 +243,7 @@ export function CinematicLandingPage() {
             <CardHeader>
               <CardTitle>Product overview</CardTitle>
               <CardDescription>
-                One platform for customers, employees, operators and master developers.
+                One platform for customers, employees and organization operators.
               </CardDescription>
             </CardHeader>
             <CardContent className="grid gap-3 text-sm text-muted-foreground">
@@ -372,11 +372,6 @@ export function CinematicLandingPage() {
             </Link>
             <Link href="/login">
               <Button variant="secondary">Login</Button>
-            </Link>
-            <Link href="/developer/login">
-              <Button variant="ghost" className="text-muted-foreground hover:text-foreground">
-                Developer Portal
-              </Button>
             </Link>
           </CardContent>
         </Card>

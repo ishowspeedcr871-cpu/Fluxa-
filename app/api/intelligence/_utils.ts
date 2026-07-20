@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { authErrorCode, authErrorStatus, isAuthError } from "@/services/auth/errors";
 import { serializeIntelligenceError } from "@/services/intelligence/errors";
 
 export async function readIntelligenceJson(request: Request) {
@@ -12,6 +13,18 @@ export async function readIntelligenceJson(request: Request) {
 }
 
 export function handleIntelligenceApiError(error: unknown) {
+  if (isAuthError(error)) {
+    return Response.json(
+      {
+        error: {
+          code: authErrorCode(error),
+          message: error instanceof Error ? error.message : "Forbidden",
+        },
+      },
+      { status: authErrorStatus(error) },
+    );
+  }
+
   if (error instanceof z.ZodError) {
     return Response.json(
       {

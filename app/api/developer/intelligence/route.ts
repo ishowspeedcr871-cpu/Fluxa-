@@ -4,7 +4,7 @@ import { getAiAnalyticsDashboard } from "@/services/intelligence/intelligence-se
 
 export async function GET() {
   try {
-    await requireMasterDeveloper();
+    await requireMasterDeveloper({ api: true });
     return Response.json(await getAiAnalyticsDashboard(null));
   } catch (error) {
     return handleIntelligenceApiError(error);
